@@ -1,23 +1,15 @@
-const { ObjectId } = require("mongoose").Types;
-const Thought = require("../models/Thought");
 const User = require("../models/User");
 
-module.exports = {
+const userController = {
   getUsers(req, res) {
-    User.find()
+    User.find({})
       .then((users) => res.json(users))
       .catch((err) => res.status(500).json(err));
   },
 
   getSingleUser(req, res) {
-    User.findOne({ _id: req.params.userId })
-      .select("-__v")
-      .populate("thoughts")
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: "No user with that ID" })
-          : res.json(user)
-      )
+    User.findOne({ _id: req.params.id })
+      .then((user) => res.json(user))
       .catch((err) => res.status(500).json(err));
   },
 
@@ -28,29 +20,49 @@ module.exports = {
   },
 
   deleteUser(req, res) {
-    User.findOneAndDelete({ _id: req.params.userId })
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: "No user with that ID" })
-          : Application.deleteMany({ _id: { $in: user.applications } })
-      )
-      .then(() => res.json({ message: "User and associated apps deleted!" }))
-      .catch((err) => res.status(500).json(err));
+    User.findOneAndDelete({ _id: req.params.id }).then((user) => {
+      if (!user) {
+        res.status(500).json({ message: "No user with that ID" });
+      }
+    });
   },
 
   updateUser(req, res) {
-    console.log("You are updating user information");
     console.log(req.body);
     User.findOneAndUpdate(
-      { _id: req.params.userId },
+      { _id: req.params.id },
       { $addToSet: { users: req.body } },
       { runValidators: true, new: true }
     )
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: "No user found" })
-          : res.json(user)
-      )
+      .then((user) => {
+        if (!user) {
+          res.status(500).json({ message: "No user with that ID" });
+        }
+      })
       .catch((err) => res.status(500).json(err));
   },
+
+  addFriend(req, res) {
+    User.findOneAndUpdate(
+      { _id: req.params.id },
+      { $push: { friends: req.params.friendId } },
+      { runValidators: true, new: true }
+    )
+      .then((user) => {
+        if (!user) {
+          res.status(500).json({ message: "No user with that ID" });
+        }
+      })
+      .catch((err) => res.json(err));
+  },
+  
+  deleteFriend(req, res) {
+    User.findOneAndDelete({ _id: req.params.friendId }).then((user) => {
+      if (!user) {
+        res.status(500).json({ message: "No user with that ID" });
+      }
+    });
+  },
 };
+
+module.exports = userController;

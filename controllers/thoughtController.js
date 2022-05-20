@@ -1,22 +1,15 @@
-const { ObjectId } = require("mongoose").Types;
-const Thought = require("../models/User");
+const Thought = require("../models/Thought");
 
-module.exports = {
+const thoughtController = {
   getThoughts(req, res) {
-    Thought.find()
+    Thought.find({})
       .then((thoughts) => res.json(thoughts))
       .catch((err) => res.status(500).json(err));
   },
 
   getSingleThought(req, res) {
     Thought.findOne({ _id: req.params.thoughtId })
-      .select("-__v")
-      .populate("thoughts")
-      .then((thought) =>
-        !thought
-          ? res.status(404).json({ message: "No thought with that ID" })
-          : res.json(user)
-      )
+      .then((thought) => res.json(thought))
       .catch((err) => res.status(500).json(err));
   },
 
@@ -28,28 +21,55 @@ module.exports = {
 
   deleteThought(req, res) {
     Thought.findOneAndDelete({ _id: req.params.thoughtId })
-      .then((thought) =>
-        !thought
-          ? res.status(404).json({ message: "No thought with that ID" })
-          : Application.deleteMany({ _id: { $in: thought.applications } })
-      )
-      .then(() => res.json({ message: "Thought deleted!" }))
-      .catch((err) => res.status(500).json(err));
+      .then((thought) => {
+        if (!thought) {
+          res.status(500).json({ message: "Thought not found" });
+        }
+      })
+      .catch((err) => res.json(err));
   },
 
   updateThought(req, res) {
-    console.log("You are updating user information");
-    console.log(req.body);
     Thought.findOneAndUpdate(
       { _id: req.params.thoughtId },
-      { $addToSet: { users: req.body } },
+      { $push: { thought: req.body } },
       { runValidators: true, new: true }
     )
-      .then((thought) =>
-        !thought
-          ? res.status(404).json({ message: "Thought not found" })
-          : res.json(thought)
-      )
-      .catch((err) => res.status(500).json(err));
+      .then((thought) => {
+        if (!thought) {
+          res.status(500).json({ message: "Thought not found" });
+        }
+      })
+      .catch((err) => res.json(err));
+  },
+
+  createReaction(req, res) {
+    Thought.findOneAndUpdate(
+      { _id: req.params.thoughtId },
+      { $push: { reactions: req.body } },
+      { runValidators: true, new: true }
+    )
+      .then((thought) => {
+        if (!thought) {
+          res.status(500).json({ message: "Reaction data incomplete" });
+        }
+      })
+      .catch((err) => res.json(err));
+  },
+
+  deleteReaction(req, res) {
+    Thought.findOneAndDelete(
+      { _id: params.thoughtId },
+      { $pull: { reactions: { reactionId: params.reactionId } } },
+      { new: true, runValidators: true }
+    )
+      .then((thought) => {
+        if (!thought) {
+          res.status(500).json({ message: "Reaction not found" });
+        }
+      })
+      .catch((err) => res.json(err));
   },
 };
+
+module.exports = thoughtController;
